@@ -1,9 +1,9 @@
-fastapi
 uvicorn
-scikit-learn
+fastapi
+scikit-learn==1.7.2
 pillow
 pandas
-tensorflow
+tensorflow-cpu
 numpy
 python-multipart
 imbalanced-learn
