@@ -2,32 +2,50 @@ import pickle
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File
-from tensorflow.keras.models import load_model
 from pydantic import BaseModel
 from PIL import Image
 import io
+from tensorflow.keras.models import load_model
+
+app = FastAPI(title="B-C Prediction API")
+
+
+# Expected Training Feature Names
+
+TRAINING_COLUMNS = [
+    "Age at Diagnosis",
+    "Type of Breast Surgery",
+    "ER Status",
+    "HER2 Status",
+    "TMB (nonsynonymous)",
+    "Tumor Stage",
+    "3-Gene classifier subtype",
+    "PR Status",
+    "Lymph nodes examined positive",
+    "Integrative Cluster",
+    "Nottingham prognostic index",
+    "Tumor Other Histologic Subtype"
+]
+
+
+# Input Model
 
 class PatientData(BaseModel):
     Age_at_Diagnosis: int
     Type_of_Breast_Surgery: str
     ER_Status: str
     HER2_Status: str
-    Neoplasm_Histologic_Grade: str
     TMB_nonsynonymous: float
     Tumor_Stage: str
     Three_Gene_classifier_subtype: str
     PR_Status: str
     Lymph_nodes_examined_positive: int
     Integrative_Cluster: str
-    Hormone_Therapy: str
     Nottingham_prognostic_index: float
     Tumor_Other_Histologic_Subtype: str
 
-app = FastAPI(title="B-C Prediction API")
 
-# -----------------------------
-# Load Models
-# -----------------------------
+# Load Models 
 
 molecular_model = pickle.load(open("models/molecular_subtype_model.pkl", "rb"))
 molecular_le = pickle.load(open("models/molecular_le.pkl", "rb"))
@@ -37,24 +55,53 @@ survival_model = pickle.load(open("models/survival_status_model.pkl", "rb"))
 cnn_model = load_model("models/cnn_model.keras")
 
 
+
 # Home Route
 
 @app.get("/")
 def home():
     return {"message": "B-C Multi-Model Prediction API"}
 
+# Helper Function
+# Convert API Input into Training Format
 
-# Image Classification 
+def prepare_dataframe(data):
 
+    df = pd.DataFrame([data.dict()])
+
+    df = df.rename(columns={
+        "Age_at_Diagnosis": "Age at Diagnosis",
+        "Type_of_Breast_Surgery": "Type of Breast Surgery",
+        "ER_Status": "ER Status",
+        "HER2_Status": "HER2 Status",
+        "TMB_nonsynonymous": "TMB (nonsynonymous)",
+        "Tumor_Stage": "Tumor Stage",
+        "Three_Gene_classifier_subtype": "3-Gene classifier subtype",
+        "PR_Status": "PR Status",
+        "Lymph_nodes_examined_positive": "Lymph nodes examined positive",
+        "Integrative_Cluster": "Integrative Cluster",
+        "Nottingham_prognostic_index": "Nottingham prognostic index",
+        "Tumor_Other_Histologic_Subtype": "Tumor Other Histologic Subtype"
+    })
+
+    df = df[TRAINING_COLUMNS]
+
+    return df
+
+
+
+# Image-Classification
 
 @app.post("/predict-image")
 async def predict_image(file: UploadFile = File(...)):
 
     image_bytes = await file.read()
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img = img.resize((224,224))
-    img_array = np.expand_dims(np.array(img)/255.0, axis=0)
+
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
     prediction = cnn_model.predict(img_array)[0][0]
 
@@ -69,13 +116,13 @@ async def predict_image(file: UploadFile = File(...)):
     }
 
 
-# Subtype Prediction
 
+# Subtype-Prediction
 
 @app.post("/predict-subtype")
 def predict_subtype(data: PatientData):
 
-    df = pd.DataFrame([data.dict()])
+    df = prepare_dataframe(data)
 
     pred_numeric = molecular_model.predict(df)[0]
     pred_label = molecular_le.inverse_transform([pred_numeric])[0]
@@ -103,15 +150,15 @@ def predict_subtype(data: PatientData):
     }
 
 
-# Survival Status Prediction
-
+# survival-prediction
 
 @app.post("/predict-survival")
 def predict_survival(data: PatientData):
 
-    df = pd.DataFrame([data.dict()])
+    df = prepare_dataframe(data)
 
     if hasattr(survival_model, "predict_proba"):
+
         proba = survival_model.predict_proba(df)[0]
         pred = np.argmax(proba)
 
@@ -125,11 +172,10 @@ def predict_survival(data: PatientData):
         }
 
     else:
+
         pred = survival_model.predict(df)[0]
         output = "DECEASED" if pred == 1 else "LIVING"
 
         return {
             "prediction": output
         }
-
-
