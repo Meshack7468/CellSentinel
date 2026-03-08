@@ -6,3 +6,4 @@ pandas
 tensorflow
 numpy
 python-multipart
+imbalanced-learn
