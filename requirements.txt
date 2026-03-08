@@ -3,5 +3,6 @@ uvicorn
 scikit-learn
 pillow
 pandas
+tensorflow-cpu
 numpy
 python-multipart
