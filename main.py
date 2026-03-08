@@ -6,8 +6,18 @@ from pydantic import BaseModel
 from PIL import Image
 import io
 from tensorflow.keras.models import load_model
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="B-C Prediction API")
+
+app = FastAPI(title="Breast Cancer Prediction API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Expected Training Feature Names
