@@ -37,7 +37,7 @@ TRAINING_COLUMNS = [
     "Integrative Cluster",
     "Nottingham prognostic index",
     "Tumor Other Histologic Subtype"
-    "Hormone Therapy"
+    
 ]
 
 
@@ -56,7 +56,7 @@ class PatientData(BaseModel):
     Integrative_Cluster: str
     Nottingham_prognostic_index: float
     Tumor_Other_Histologic_Subtype: str
-    Hormone_Therapy: str
+    
 
 
 
@@ -104,7 +104,7 @@ def prepare_dataframe(data: PatientData):
         "Integrative_Cluster": "Integrative Cluster",
         "Nottingham_prognostic_index": "Nottingham prognostic index",
         "Tumor_Other_Histologic_Subtype": "Tumor Other Histologic Subtype",
-        "Hormone_Therapy": "Hormone Therapy"
+        
     })
 
     df = df[TRAINING_COLUMNS]
