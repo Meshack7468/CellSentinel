@@ -42,7 +42,7 @@ class PatientData(BaseModel):
     ER_Status: str
     HER2_Status: str
     TMB_nonsynonymous: float
-    Tumor_Stage: float
+    Tumor_Stage: int
     Three_Gene_classifier_subtype: str
     PR_Status: str
     Lymph_nodes_examined_positive: int
