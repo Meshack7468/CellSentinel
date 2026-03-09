@@ -8,9 +8,9 @@ import io
 from tensorflow.keras.models import load_model
 from fastapi.middleware.cors import CORSMiddleware
 
-
 app = FastAPI(title="Breast Cancer Prediction API")
 
+# Allow CORS for testing
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Expected Training Feature Names
-
+# Training feature names
 TRAINING_COLUMNS = [
     "Age at Diagnosis",
     "Type of Breast Surgery",
@@ -37,9 +35,7 @@ TRAINING_COLUMNS = [
     "Tumor Other Histologic Subtype"
 ]
 
-
-# Input Model
-
+# Input model
 class PatientData(BaseModel):
     Age_at_Diagnosis: int
     Type_of_Breast_Surgery: str
@@ -54,29 +50,19 @@ class PatientData(BaseModel):
     Nottingham_prognostic_index: float
     Tumor_Other_Histologic_Subtype: str
 
-
-# Load Models 
-
+# Load models
 molecular_model = pickle.load(open("models/molecular_subtype_model.pkl", "rb"))
 molecular_le = pickle.load(open("models/molecular_le.pkl", "rb"))
-
 survival_model = pickle.load(open("models/survival_status_model.pkl", "rb"))
-
 cnn_model = load_model("models/cnn_model.keras")
 
-
-
-# Home Route
-
+# Home route
 @app.get("/")
 def home():
     return {"message": "B-C Multi-Model Prediction API"}
 
-# Helper Function
-# Convert API Input into Training Format
-
-def prepare_dataframe(data):
-
+# Helper function: prepare dataframe for models
+def prepare_dataframe(data: PatientData):
     df = pd.DataFrame([data.dict()])
 
     df = df.rename(columns={
@@ -95,62 +81,41 @@ def prepare_dataframe(data):
     })
 
     df = df[TRAINING_COLUMNS]
-
     return df
 
-
-
-# Image-Classification
-
+# Image classification
 @app.post("/predict-image")
 async def predict_image(file: UploadFile = File(...)):
-
     image_bytes = await file.read()
-
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img = img.resize((224,224))
-
+    img = img.resize((224, 224))
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
-
+    
     prediction = cnn_model.predict(img_array)[0][0]
-
-    if prediction > 0.5:
-        result = "Malignant"
-    else:
-        result = "Benign"
+    result = "Malignant" if prediction > 0.5 else "Benign"
 
     return {
         "prediction": result,
         "confidence": float(prediction)
     }
 
-
-
-# Subtype-Prediction
-
+# Subtype prediction
 @app.post("/predict-subtype")
 def predict_subtype(data: PatientData):
-
     df = prepare_dataframe(data)
-
     pred_numeric = molecular_model.predict(df)[0]
     pred_label = molecular_le.inverse_transform([pred_numeric])[0]
 
     treatment = "Radiotherapy and chemotherapy"
-
     if "LUMA" in pred_label:
         treatment = "Hormone therapy, Radiotherapy"
-
     elif "LUMB" in pred_label:
         treatment = "Hormone therapy, Chemotherapy, Radiotherapy"
-
     elif "HER2" in pred_label:
         treatment = "Chemotherapy, Radiotherapy"
-
     elif "BASAL" in pred_label:
         treatment = "Chemotherapy, Radiotherapy"
-
     elif "CLAUDIN-LOW" in pred_label:
         treatment = "Chemotherapy, Radiotherapy"
 
@@ -159,33 +124,18 @@ def predict_subtype(data: PatientData):
         "recommended_treatment": treatment
     }
 
-
-# survival-prediction
-
+# Survival prediction
 @app.post("/predict-survival")
 def predict_survival(data: PatientData):
-
     df = prepare_dataframe(data)
-
+    
     if hasattr(survival_model, "predict_proba"):
-
         proba = survival_model.predict_proba(df)[0]
         pred = np.argmax(proba)
-
         confidence = float(proba[pred] * 100)
-
         output = "DECEASED" if pred == 1 else "LIVING"
-
-        return {
-            "prediction": output,
-            "confidence": confidence
-        }
-
+        return {"prediction": output, "confidence": confidence}
     else:
-
         pred = survival_model.predict(df)[0]
         output = "DECEASED" if pred == 1 else "LIVING"
-
-        return {
-            "prediction": output
-        }
+        return {"prediction": output}
