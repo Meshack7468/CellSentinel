@@ -127,15 +127,26 @@ def predict_subtype(data: PatientData):
 # Survival prediction
 @app.post("/predict-survival")
 def predict_survival(data: PatientData):
-    df = prepare_dataframe(data)
-    
-    if hasattr(survival_model, "predict_proba"):
-        proba = survival_model.predict_proba(df)[0]
-        pred = np.argmax(proba)
-        confidence = float(proba[pred] * 100)
+    try:
+        df = prepare_dataframe(data)
+
+        df = df.astype(object)
+
+        if hasattr(survival_model, "predict_proba"):
+            proba = survival_model.predict_proba(df)[0]      
+            pred = int(np.argmax(proba))                     
+            confidence = float(proba[pred] * 100)
+        else:
+            pred = int(survival_model.predict(df)[0])       
+            confidence = None
+
         output = "DECEASED" if pred == 1 else "LIVING"
-        return {"prediction": output, "confidence": confidence}
-    else:
-        pred = survival_model.predict(df)[0]
-        output = "DECEASED" if pred == 1 else "LIVING"
-        return {"prediction": output}
+
+        result = {"prediction": output}
+        if confidence is not None:
+            result["confidence"] = confidence
+
+        return result
+
+    except Exception as e:
+        return {"error": f"Survival prediction failed: {str(e)}"}
