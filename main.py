@@ -42,12 +42,12 @@ class PatientData(BaseModel):
     ER_Status: str
     HER2_Status: str
     TMB_nonsynonymous: float
-    Tumor_Stage: str
+    Tumor_Stage: float
     Three_Gene_classifier_subtype: str
     PR_Status: str
     Lymph_nodes_examined_positive: int
-    Integrative_Cluster: str
-    Nottingham_prognostic_index: float
+    Integrative_Cluster: int
+    Nottingham_prognostic_index: int
     Tumor_Other_Histologic_Subtype: str
 
 # Load models
