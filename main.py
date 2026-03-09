@@ -47,7 +47,7 @@ class PatientData(BaseModel):
     PR_Status: str
     Lymph_nodes_examined_positive: int
     Integrative_Cluster: int
-    Nottingham_prognostic_index: int
+    Nottingham_prognostic_index: float
     Tumor_Other_Histologic_Subtype: str
 
 # Load models
