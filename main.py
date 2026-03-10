@@ -176,25 +176,24 @@ def predict_subtype(data: PatientData):
     }
 
 
-# Survival Prediction
-
 @app.post("/predict-survival")
 def predict_survival(data: PatientData):
-
     try:
+        # Prepare input
         df = prepare_dataframe(data)
 
-        pred = int(survival_model.predict(df)[0])
+        # Prediction
+        pred = survival_model.predict(df)[0]  
 
-        
+        # Confidence 
         confidence = None
         if hasattr(survival_model, "predict_proba"):
-            confidence = float(survival_model.predict_proba(df)[0][1])
-
-        output = "DECEASED" if pred == 1 else "LIVING"
+            # Find index of "DECEASED"
+            deceased_index = list(survival_model.classes_).index("DECEASED")
+            confidence = float(survival_model.predict_proba(df)[0][deceased_index])
 
         return {
-            "prediction": output,
+            "prediction": pred,
             "confidence": confidence
         }
 
