@@ -1,5 +1,5 @@
 // ── CellSentinel Backend ──────────────────────────────────────────────────────
-const BASE = import.meta.env.VITE_API_URL as string;
+const BASE = "https://cellsentinel-7.onrender.com";
 
 // ---------- Shared fetch helper (JSON) ----------
 async function apiFetch<T>(endpoint: string, body: unknown): Promise<T> {
